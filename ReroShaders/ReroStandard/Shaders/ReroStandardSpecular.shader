@@ -93,13 +93,46 @@ Shader ".Rero/Rero Standard/Rero Standard (Specular Setup)"
 		}
 
 		LOD 300
-		Cull [_Cull]
+        Pass
+        {
+            Name "FORWARD"
+            Cull front
+            Tags { "LightMode" = "ForwardBase" }
 
+            Blend [_SrcBlend] [_DstBlend]
+            ZWrite [_ZWrite]
+
+            CGPROGRAM
+            #pragma target 3.0
+
+            // -------------------------------------
+
+            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature ___ _DETAIL_MULX2
+            #pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature _ _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature _ _GLOSSYREFLECTIONS_OFF
+            #pragma shader_feature _DARKTEST
+
+            #define _DARKTEST
+            #pragma multi_compile_fwdbase
+            #pragma multi_compile_fog
+            #pragma multi_compile_instancing
+            // Uncomment the following line to enable dithering LOD crossfade. Note: there are more in the file to uncomment for other passes.
+            //#pragma multi_compile _ LOD_FADE_CROSSFADE
+
+            #pragma vertex vertBase
+            #pragma fragment fragBase
+            #include "CGINC/UnityStandardCoreForwardRero.cginc"
+
+            ENDCG
+        }
         // ------------------------------------------------------------------
         //  Base forward pass (directional light, emission, lightmaps, ...)
         Pass
         {
             Name "FORWARD"
+            Cull back
             Tags { "LightMode" = "ForwardBase" }
 
             Blend [_SrcBlend] [_DstBlend]

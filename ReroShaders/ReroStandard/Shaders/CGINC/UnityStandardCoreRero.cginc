@@ -12,7 +12,7 @@
 #include "UnityStandardUtilsRero.cginc"
 #include "UnityGBuffer.cginc"
 //#include "UnityStandardBRDF.cginc"
-#include "UnityStandardBRDFCustom.cginc"
+#include "UnityStandardBRDFcustom.cginc"
 #define UNITY_BRDF_PBS BRDF_Unity_Rero
 #include "AutoLight.cginc"
 //-------------------------------------------------------------------------------------
@@ -441,25 +441,44 @@ VertexOutputForwardBase vertForwardBase (VertexInput v)
 
 half4 fragForwardBaseInternal (VertexOutputForwardBase i)
 {
-    UNITY_APPLY_DITHER_CROSSFADE(i.pos.xy);
+
+	UNITY_APPLY_DITHER_CROSSFADE(i.pos.xy);
 
     FRAGMENT_SETUP(s)
-
+	
     UNITY_SETUP_INSTANCE_ID(i);
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+	#ifdef _DARKTEST
 
-    UnityLight mainLight = MainLight ();
-    UNITY_LIGHT_ATTENUATION(atten, i, s.posWorld);
+		half4 o;
+		o.a = s.alpha;
 
-    half occlusion = Occlusion(i.tex.xy);
-    UnityGI gi = FragmentGI (s, occlusion, i.ambientOrLightmapUV, atten, mainLight);
 
-    half4 c = UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, gi.light, gi.indirect);
-    c.rgb += Emission(i.tex.xy);
+		o.r=0;
+		o.g=0;
+		o.b=0;
+    #else
+		UnityLight mainLight = MainLight ();
+		UNITY_LIGHT_ATTENUATION(atten, i, s.posWorld);
 
-    UNITY_APPLY_FOG(i.fogCoord, c.rgb);
-    return OutputForward (c, s.alpha);
+		half occlusion = Occlusion(i.tex.xy);
+		UnityGI gi = FragmentGI (s, occlusion, i.ambientOrLightmapUV, atten, mainLight);
+
+		half4 c = UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, gi.light, gi.indirect);
+		c.rgb += Emission(i.tex.xy);
+
+		UNITY_APPLY_FOG(i.fogCoord, c.rgb);
+		half4 o = OutputForward (c, s.alpha);
+
+		float distanceFromCamera = length(i.eyeVec);
+		float fade = 1-saturate(1-(distanceFromCamera-0.1) * 20);
+		o.rgb*=fade;
+		//o.rgb=normalize(i.pos);
+	
+	#endif
+	return o;
 }
+
 
 half4 fragForwardBase (VertexOutputForwardBase i) : SV_Target   // backward compatibility (this used to be the fragment entry function)
 {
@@ -548,7 +567,9 @@ half4 fragForwardAddInternal (VertexOutputForwardAdd i)
     half4 c = UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, light, noIndirect);
 
     UNITY_APPLY_FOG_COLOR(i.fogCoord, c.rgb, half4(0,0,0,0)); // fog towards black in additive pass
-    return OutputForward (c, s.alpha);
+    half4 o = OutputForward (c, s.alpha);
+
+    return o;
 }
 
 half4 fragForwardAdd (VertexOutputForwardAdd i) : SV_Target     // backward compatibility (this used to be the fragment entry function)
@@ -680,7 +701,8 @@ void fragDeferred (
     #ifndef UNITY_HDR_ON
         emissiveColor.rgb = exp2(-emissiveColor.rgb);
     #endif
-
+    //s.diffColor.r=0;
+    //s.specColor.r=0;
     UnityStandardData data;
     data.diffuseColor   = s.diffColor;
     data.occlusion      = occlusion;

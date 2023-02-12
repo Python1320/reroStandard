@@ -93,12 +93,16 @@ Shader ".Rero/Rero Standard/Rero Standard"
 		}
 
 		LOD 300
-		Cull [_Cull]
-
+        Pass
+        {
+            Cull front
+            Color (0,0,0,1)
+        }
         // ------------------------------------------------------------------
         //  Base forward pass (directional light, emission, lightmaps, ...)
         Pass
         {
+            Cull back
             Name "FORWARD"
             Tags { "LightMode" = "ForwardBase" }
 
@@ -136,6 +140,7 @@ Shader ".Rero/Rero Standard/Rero Standard"
         //  Additive forward pass (one light per pass)
         Pass
         {
+            Cull back
             Name "FORWARD_DELTA"
             Tags { "LightMode" = "ForwardAdd" }
             Blend [_SrcBlend] One
@@ -172,6 +177,7 @@ Shader ".Rero/Rero Standard/Rero Standard"
         // ------------------------------------------------------------------
         //  Shadow rendering pass
         Pass {
+            Cull back
             Name "ShadowCaster"
             Tags { "LightMode" = "ShadowCaster" }
 
@@ -202,6 +208,7 @@ Shader ".Rero/Rero Standard/Rero Standard"
         //  Deferred pass
         Pass
         {
+            Cull back
             Name "DEFERRED"
             Tags { "LightMode" = "Deferred" }
 
